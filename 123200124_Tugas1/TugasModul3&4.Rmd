@@ -1,0 +1,132 @@
+---
+title: "Latihan Modul 3 & 4"
+author: "Rangga Restu Ramadhani"
+date: "2022-09-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Import dataset "murders":
+```{r}
+library(dslabs)
+library(tibble)
+data(murders)
+```
+
+## MODUL 3
+
+# Soal Nomor 1
+Gunakan fungsi str untuk memeriksa struktur objek "murders". Pernyataan yang paling menggambarkan karakter tiap variabel dalam data frame:
+
+Data berisi Nama negara bagian, singkatan dari nama negara bagian, wilayah negara bagian, dan populasi negara bagian serta jumlah total pembunuhan pada tahun 2010.
+```{r}
+str(murders)
+as_tibble(murders)
+```
+
+# Soal Nomor 2
+Kolom yang digunakan dalam data frame.
+```{r}
+names(murders)
+```
+
+# Soal Nomor 3
+Informasi singkatan negara menggunakan operator aksesor ($) dalam objek "a"
+```{r}
+a = murders$abb
+char(a)
+class(a)
+```
+Jenis class objek "a" adalah character.
+
+# Soal Nomor 4
+Informasi suatu singkatan negara menggunakan tanda kurung siku dalam objek "b"
+```{r}
+b = murders$abb[51]
+char(b)
+class(b)
+```
+Kesimpulan: variabel "a" dan "b" bernilai sama, yaitu character.
+
+# Soal Nomor 5
+Fungsi level dan length pada variabel region.
+```{r}
+levels(murders$region); length(murders$region)
+```
+
+# Soal Nomor 6
+Fungsi tabel untuk menampilkan tabel berisi jumlah state pada setiap region.
+```{r}
+table(murders$state, murders$region)
+```
+
+## MODUL 4
+
+# Soal Nomor 1
+Menyimpan variabel populasi dalam objek "pop"
+```{r}
+pop = sort(murders$population)
+pop
+pop[1]
+```
+Menampilkan nilai populasi terkecil menggunakan operator kurung siku.
+
+# Nomor 2
+```{r}
+y = order(murders$population)
+y[1]
+```
+Indeks dari data dengan nilai terkecil terletak pada indeks ke 51
+
+# Nomor 3
+```{r}
+which.min(murders$population)
+```
+
+# Nomor 4
+Menggunakan which.min dengan perintah seperti pada nomor 3
+```{r}
+murders$state[which.min(murders$population)]
+```
+
+# Nomor 5
+Menggunakan fungsi rank untuk menentukan peringkat populasi negara bagian dalam bentuk data frame.
+```{r}
+ranks <- rank(murders$population)
+my_df = data.frame(state = murders$state, peringkat = ranks)
+my_df
+```
+
+# Nomor 6
+Mengurutkan data pada nomor 5 menggunakan fungsi order
+```{r}
+ranks <- rank(murders$population)
+my_df = data.frame(state = murders$state, peringkat = ranks)
+ind = my_df[order(my_df$peringkat),]
+ind
+```
+
+# Nomor 7
+Visualisasi total pembunuhan
+```{r}
+population_in_millions <- log10(murders$population)
+total_gun_murders <- murders$total
+plot(population_in_millions, total_gun_murders)
+```
+
+# Nomor 8
+Histogram dari populasi negara bagian
+```{r}
+population_in_millions = log10(murders$population)
+hist(population_in_millions, main="histogram of state population")
+```
+
+# Nomor 9
+Boxplot dari populsi negara bagian
+```{r}
+murders$boxplot <- with(murders, log10(population))
+boxplot(boxplot~region, data = murders)
+```

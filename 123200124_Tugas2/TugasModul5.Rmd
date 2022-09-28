@@ -1,0 +1,67 @@
+---
+title: "Tugas Modul 5"
+author: "Rangga Restu Ramadhani"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Import database "murders"
+```{r}
+library(dslabs)
+data(murders)
+```
+
+## MODUL 3
+
+# Soal Nomor 1
+Fungsi untuk menghitung jumlah karakter dari suatu vektor karakter
+```{r}
+new_names <- ifelse(nchar(murders$state) > 8, murders$abb, murders$state)
+new_names
+```
+Di atas merupakan nama negara yang dibedakan berdasarkan jumlah karakter sesuai dengan ketentuan pada soal.
+
+# Soal Nomor 2
+Fungsi menghitung jumlah bilangan bulat dari 1 hingga 5000
+```{r}
+sum_n <- function(n){
+  s <- sum(1:n)
+  print(s)
+}
+sum_n(5000)
+```
+
+# Soal Nomor 3
+Fungsi menghitung jumlah bilangan berpangkat 2 dari 1 hingga 10
+```{r}
+compute_s_n <- function(n){
+  calc <- 0
+  for(i in 1:n){
+    calc <- calc + i^2
+  }
+  calc
+}
+compute_s_n(10)
+```
+
+# Soal Nomor 4
+Menyimpan hasil setiap komputasi di atas menggunakan FOR-LOOP
+```{r}
+s_n <- vector("numeric", 25)
+for (i in 1:25) {
+  s_n[i] <- compute_s_n(i)
+}
+s_n
+```
+
+# Soal Nomor 5
+Perulangan langkah pada nomor 4 menggunakan fungsi sapply
+```{r}
+s_n <- sapply(1:25, compute_s_n)
+s_n
+```
+

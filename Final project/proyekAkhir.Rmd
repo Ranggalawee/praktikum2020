@@ -1,0 +1,245 @@
+---
+title: "Proyek Akhir"
+author: "Rangga Restu R & Muhammad Agil S"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 3.1	Import Library yang Dibutuhkan
+
+```{r library}
+library(syuzhet)
+library(RTextTools)
+library(e1071)
+library(tidyverse)
+library(tm)
+library(textdata)
+library(ggplot2)
+library(dplyr)
+library(plyr)
+library(shiny)
+library(wordcloud) 
+library(RColorBrewer)
+library(corpus)
+library(vader)
+library(markdown)
+library(DT)
+library(shiny)
+library(caret)
+library(SnowballC)
+```
+
+## 3.2	Pengambilan data & Data Preprocessing
+
+```{r load dataset}
+#mengambil kolom text dan mengubah menjadi bentuk vektor
+tweetCovid <- covid19_tweets$text
+covid_corpus <- Corpus(VectorSource(tweetCovid))
+
+#menghapus URL
+removeURL <- function(x) gsub("http[^[:space:]]*", "", x)
+tweetclean <- tm_map(covid_corpus, removeURL)
+
+#menghapus NewLine
+removeNL <- function(y) gsub("\n", " ", y)
+tweetclean <- tm_map(tweetclean, removeNL)
+
+#menghapus koma
+replacecomma <- function(y) gsub(",", "", y)
+tweetclean <- tm_map(tweetclean, replacecomma)
+
+#menghapus titik2
+removetitik2 <- function(y) gsub(":", "", y)
+tweetclean <- tm_map(tweetclean, removetitik2)
+
+#menghapus titik koma
+removetitikkoma <- function(y) gsub(";", " ", y)
+tweetclean <- tm_map(tweetclean, removetitikkoma)
+
+#menghapus titik3
+removetitik3 <- function(y) gsub("p…", "", y)
+tweetclean <- tm_map(tweetclean, removetitik3)
+
+#menghapus RT(retweet)
+removeRT <- function(y) gsub("RT", "", y)
+tweetclean <- tm_map(tweetclean, removeRT)
+
+#menghapus &
+removeamp <- function(y) gsub("&amp;", "", y)
+tweetclean <- tm_map(tweetclean, removeamp)
+
+#menghapus username
+removeUN <- function(z) gsub("@\\w+", "", z)
+tweetclean <- tm_map(tweetclean, removeUN)
+
+#menghapus space dan lainnya
+remove.all <- function(xy) gsub("[^[:alpha:][:space:]]*", "", xy)
+tweetclean <- tm_map(tweetclean,remove.all)
+
+#menghapus tanda baca
+tweetclean <- tm_map(tweetclean, removePunctuation)
+=
+#menghilangkan angka
+tweetclean <- tm_map(tweetclean, removeNumbers)
+
+#menghilangkan white space
+tweetclean <- tm_map(tweetclean, stripWhitespace)
+
+#mengubah ke huruf kecil
+tweetclean <- tm_map(tweetclean, tolower)
+
+#menghilangkan stopwords
+stopwords = readLines("stopwords.txt")
+tweetclean <- tm_map(tweetclean,removeWords,stopwords)
+
+```
+
+## 3.4	Seleksi Data
+
+```{r}
+#Mengubah tweetclean menjadi data frame dan mengambil 1000 data teratas
+dataframe<-data.frame(text=unlist(sapply(tweetclean, `[`)), stringsAsFactors=F)
+dataframe_decreased<-head(dataframe, n=1000)
+
+#Diurutkan dari huruf z 
+write.csv(dataframe_decreased, file = 'tweetclean_covid.csv')
+```
+
+```{r}
+#Membaca file csv yang sudah menjalani proses cleaning data
+covid_fulldata <-read.csv("tweetclean_covid.csv",stringsAsFactors = FALSE)
+covid_data <- covid_fulldata$text
+
+#Menghapus data yang hilang
+sorted_df <- sort(covid_data, decreasing = TRUE)
+covid_data <- sorted_df[-(748:1000)]
+
+#Menghapus data duplikasi
+covid_data <- covid_data[!duplicated(covid_data)]
+
+```
+
+## 3.5 Implementasi Vader Analysis Sentiment
+
+```{r}
+#Vader Sentiment Analysis
+library(tidyr)
+
+df = data.frame(covid_data)
+colnames(df) <- c('Tweet')
+
+data_tweet = df
+
+#memakai fungsi vader dan kamus 
+df_temp = vader_df(df['Tweet'])
+df["positive"]<- df_temp['pos']
+df["negative"] <- df_temp['neg']
+df["neutral"] <- df_temp['neu']
+df["compound"] = df_temp['compound']
+
+df['label'] <- NA
+
+for(i in 1:nrow(df)){
+ if (df[i,"compound"] >= 0.05){ 
+   df[i,"label"] = "Positive"
+ } else if (df[i,"compound"] < 0 ){
+   df[i,"label"] = "Negative"
+ } else {
+   df[i,"label"] = "Netral"
+ }
+}
+
+df_classified = data.frame(df["Tweet"], df["label"])
+view(df_classified)
+
+sentiment_count = count(df_classified$label)
+
+
+```
+
+## 3.6	Corpus Peparation
+
+```{r}
+#Corpus Cleanse
+corpus <- Corpus(VectorSource(data_tweet))
+corpus <- tm_map(corpus, removeWords, c(stopwords(), "covid"))
+
+removw_url <- function(x) gsub("http[^[:space:]]*","",x)
+corpus <- tm_map(corpus, content_transformer(removw_url))
+
+removeNumPunct <- function(x) gsub("[^[:alpha:][:space:]]*","",x)
+corpus <- tm_map(corpus, content_transformer(removeNumPunct))
+corpus <- tm_map(corpus, removePunctuation)
+corpus <- tm_map(corpus, content_transformer(tolower))
+corpus <- tm_map(corpus, stripWhitespace)
+corpus <- tm_map(corpus, stemDocument)
+
+tdm <- TermDocumentMatrix(corpus)
+tdm <- removeSparseTerms(tdm, sparse = 0.98)
+tdm <- as.matrix(tdm)
+w = sort(rowSums(tdm), decreasing = T)
+
+view(w)
+```
+
+## Shiny App
+
+```{r}
+library(markdown)
+library(DT)
+
+ui <- fluidPage(
+  titlePanel("Tweets Kasus Covid-19 di Dunia"), #halaman judul
+  mainPanel(
+    tabsetPanel(type = "tabs",
+                tabPanel("Data Twitter", DT::dataTableOutput('data')), 
+                tabPanel("Sentiment Analysis", DT::dataTableOutput('sentiment')), 
+                tabPanel("Scatterplot", plotOutput('scatterplot')), 
+                tabPanel("Frequency Words", plotOutput('freqword')), 
+                tabPanel("Wordcloud", plotOutput('wordcloud')) 
+    )
+  )
+)
+```
+
+```{r}
+server <- function(input, output) {
+  output$data <- DT::renderDataTable({
+    DT::datatable(df["Tweet"], options = list(lengthChange = FALSE))
+  })
+  
+  output$sentiment <- DT::renderDataTable({
+    DT::datatable(df_classified, options = list(lengthChange = FALSE))
+  })
+  
+ output$scatterplot <- renderPlot({
+  barplot(sentiment_count$freq,
+        names.arg = c("Negative", "Neutral", "Positive"),
+        main='Sentiment Analysis',
+        col = rainbow(3)
+  )
+  })
+ 
+ output$freqword<- renderPlot({
+ barplot(w[c(3,4,5,7,8)],
+        las=2,
+        main = "Frequency of Words",
+        col= rainbow(5))
+  })
+ 
+ output$wordcloud<- renderPlot({
+    wordcloud(corpus, min.freq = 3,
+            max.words=100, random.order=FALSE, rot.per=0.40, 
+            colors=brewer.pal(8, "Dark2"))
+  })
+ 
+}
+```
+
+```{r}
+shinyApp(ui = ui, server = server)
+```
